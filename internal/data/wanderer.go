@@ -273,6 +273,7 @@ func CalculateSystemPositions(envelope WandererConnectionsAndSystemsEnvelope, ho
 	// Calculate positions accounting for child tree sizes
 	positions := make(map[int]struct{ x, y float64 })
 	nextYPosition := make(map[int]float64) // Track next available Y position at each depth level
+	gridSize := 15.0                       // Grid increment size
 
 	var calculatePosition func(systemID int, depth float64) float64
 	calculatePosition = func(systemID int, depth float64) float64 {
@@ -294,9 +295,23 @@ func CalculateSystemPositions(envelope WandererConnectionsAndSystemsEnvelope, ho
 
 		// Process children and track total height needed
 		totalChildHeight := 0.0
+		firstChildY := y
+		var lastChildY float64
 		for _, childID := range childList {
 			childHeight := calculatePosition(childID, depth+positionXSeparation)
 			totalChildHeight += childHeight
+			lastChildY = positions[childID].y
+		}
+
+		// If only one child, parent stays at same Y as child
+		// Otherwise, center parent between first and last child, snapped to grid
+		if len(childList) == 1 {
+			positions[systemID] = struct{ x, y float64 }{x: depth, y: firstChildY}
+		} else {
+			centerY := (firstChildY + lastChildY) / 2.0
+			// Round to nearest grid position
+			centerY = float64(int(centerY/gridSize+0.5)) * gridSize
+			positions[systemID] = struct{ x, y float64 }{x: depth, y: centerY}
 		}
 
 		// Update parent's column position to account for children's space

@@ -330,6 +330,22 @@ func CalculateSystemPositions(envelope WandererConnectionsAndSystemsEnvelope, ho
 	// Start calculation from home system at X=0
 	calculatePosition(homeSystemID, 0)
 
+	// Special case: if home system has only one child, shift all descendants
+	// so the first-level child aligns with home's Y position
+	if len(children[homeSystemID]) == 1 {
+		homeY := positions[homeSystemID].y
+		firstChildID := children[homeSystemID][0]
+		firstChildY := positions[firstChildID].y
+		yOffset := homeY - firstChildY
+
+		// Apply offset to all descendants of home
+		for systemID, pos := range positions {
+			if systemID != homeSystemID {
+				positions[systemID] = struct{ x, y float64 }{x: pos.x, y: pos.y + yOffset}
+			}
+		}
+	}
+
 	// Apply calculated positions to systems
 	for systemID, pos := range positions {
 		if sys, exists := systemMap[systemID]; exists {

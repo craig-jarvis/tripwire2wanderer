@@ -55,8 +55,8 @@ func main() {
 	// cfg.WandererHomeSystemID is now an int - no conversion needed
 	mapResult := BuildWandererMapRecursive(cfg.WandererHomeSystemID, signatures, wormholes)
 	log.Printf("wanderer request %d connections and %d systems", len(mapResult.Data.Connections), len(mapResult.Data.Systems))
-	mapResult = data.DedupWandererEnvelope(mapResult)
-	mapResult = data.CalculateSystemPositions(mapResult, cfg.WandererHomeSystemID, float64(cfg.PositionXSeparation), float64(cfg.PositionYSeparation))
+	// mapResult = data.DedupWandererEnvelope(mapResult)
+	//mapResult = data.CalculateSystemPositions(mapResult, cfg.WandererHomeSystemID, float64(cfg.PositionXSeparation), float64(cfg.PositionYSeparation))
 
 	mapResultJSON, err := json.MarshalIndent(mapResult, "", "  ")
 	if err != nil {

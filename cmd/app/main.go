@@ -54,19 +54,28 @@ func main() {
 
 	// cfg.WandererHomeSystemID is now an int - no conversion needed
 	mapResult := BuildWandererMapRecursive(cfg.WandererHomeSystemID, signatures, wormholes)
+	log.Printf("wanderer request %d connections and %d systems", len(mapResult.Data.Connections), len(mapResult.Data.Systems))
+	mapResult = data.DedupWandererEnvelope(mapResult)
+	mapResult = data.CalculateSystemPositions(mapResult, cfg.WandererHomeSystemID, float64(cfg.PositionXSeparation), float64(cfg.PositionYSeparation))
 
-	fmt.Println("\nBuilt Wanderer Map Data:")
+	mapResultJSON, err := json.MarshalIndent(mapResult, "", "  ")
+	if err != nil {
+		log.Fatalf("failed to marshal Wanderer map data: %v", err)
+	}
+	fmt.Println(string(mapResultJSON))
+
+	// fmt.Println("\nBuilt Wanderer Map Data:")
 
 	deleteRequest := data.CompareWandererEnvelopes(*wandererData, mapResult)
 
-	// Delete no longer on map systems and connections
-	fmt.Println("\n--- Deleting old Wanderer data ---")
+	// // Delete no longer on map systems and connections
+	// fmt.Println("\n--- Deleting old Wanderer data ---")
 	err = wClient.DeleteSystemsAndConnections(deleteRequest)
-	if err != nil {
-		log.Fatalf("failed to delete Wanderer data: %v", err)
-	}
+	// if err != nil {
+	// 	log.Fatalf("failed to delete Wanderer data: %v", err)
+	// }
 
-	// Post current systems and connections for Wanderer
+	// // Post current systems and connections for Wanderer
 	fmt.Println("\n--- Adding/updating new sigs and connections ---")
 	wandererResponse, err := wClient.SubmitConnectionsAndSystems(&mapResult)
 	if err != nil {

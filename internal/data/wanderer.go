@@ -35,8 +35,8 @@ type WandererSystem struct {
 	MapID         string  `json:"map_id,omitzero"`
 	TemporaryName *string `json:"temporary_name,omitzero"`
 	SolarSystemID int     `json:"solar_system_id,omitzero"`
-	PositionY     float64 `json:"position_y,omitzero"`
-	PositionX     float64 `json:"position_x,omitzero"`
+	PositionY     float64 `json:"position_y"`
+	PositionX     float64 `json:"position_x"`
 	CustomName    *string `json:"custom_name,omitzero"`
 	OriginalName  string  `json:"original_name,omitzero"`
 }
@@ -180,4 +180,141 @@ func CompareWandererEnvelopes(current, new WandererConnectionsAndSystemsEnvelope
 	}
 
 	return deleteRequest
+}
+
+// DedupWandererEnvelope removes duplicate systems and connections from the envelope
+func DedupWandererEnvelope(envelope WandererConnectionsAndSystemsEnvelope) WandererConnectionsAndSystemsEnvelope {
+	deduped := WandererConnectionsAndSystemsEnvelope{
+		Data: WandererConnectionsAndSystems{
+			Systems:     make([]WandererSystem, 0),
+			Connections: make([]WandererConnection, 0),
+		},
+	}
+
+	// Deduplicate systems by SolarSystemID
+	systemMap := make(map[int]WandererSystem)
+	for _, system := range envelope.Data.Systems {
+		if system.SolarSystemID != 0 {
+			// Keep the first occurrence
+			if _, exists := systemMap[system.SolarSystemID]; !exists {
+				systemMap[system.SolarSystemID] = system
+			}
+		}
+	}
+
+	// Convert map back to slice
+	for _, system := range systemMap {
+		deduped.Data.Systems = append(deduped.Data.Systems, system)
+	}
+
+	// Deduplicate connections by source-target pair
+	connectionMap := make(map[[2]int]WandererConnection)
+	for _, conn := range envelope.Data.Connections {
+		key := [2]int{conn.SolarSystemSource, conn.SolarSystemTarget}
+		// Keep the first occurrence
+		if _, exists := connectionMap[key]; !exists {
+			connectionMap[key] = conn
+		}
+	}
+
+	// Convert map back to slice
+	for _, conn := range connectionMap {
+		deduped.Data.Connections = append(deduped.Data.Connections, conn)
+	}
+
+	return deduped
+}
+
+// CalculateSystemPositions calculates position X and Y for all systems in a tree layout
+// starting from the home system. Parents are positioned to the left (lower Y) and centered
+// between their children horizontally.
+func CalculateSystemPositions(envelope WandererConnectionsAndSystemsEnvelope, homeSystemID int, positionXSeparation, positionYSeparation float64) WandererConnectionsAndSystemsEnvelope {
+	result := envelope
+
+	// Build adjacency map for the tree
+	adjacency := make(map[int][]int)
+	for _, conn := range envelope.Data.Connections {
+		adjacency[conn.SolarSystemSource] = append(adjacency[conn.SolarSystemSource], conn.SolarSystemTarget)
+		adjacency[conn.SolarSystemTarget] = append(adjacency[conn.SolarSystemTarget], conn.SolarSystemSource)
+	}
+
+	// Build system index map
+	systemMap := make(map[int]*WandererSystem)
+	for i := range result.Data.Systems {
+		systemMap[result.Data.Systems[i].SolarSystemID] = &result.Data.Systems[i]
+	}
+
+	// If home system doesn't exist, return unchanged
+	if _, exists := systemMap[homeSystemID]; !exists {
+		return result
+	}
+
+	// Build tree structure using BFS from home system
+	visited := make(map[int]bool)
+	parent := make(map[int]int)
+	children := make(map[int][]int)
+	queue := []int{homeSystemID}
+	visited[homeSystemID] = true
+
+	for len(queue) > 0 {
+		current := queue[0]
+		queue = queue[1:]
+
+		for _, neighbor := range adjacency[current] {
+			if !visited[neighbor] {
+				visited[neighbor] = true
+				parent[neighbor] = current
+				children[current] = append(children[current], neighbor)
+				queue = append(queue, neighbor)
+			}
+		}
+	}
+
+	// Calculate positions accounting for child tree sizes
+	positions := make(map[int]struct{ x, y float64 })
+	nextYPosition := make(map[int]float64) // Track next available Y position at each depth level
+
+	var calculatePosition func(systemID int, depth float64) float64
+	calculatePosition = func(systemID int, depth float64) float64 {
+		childList := children[systemID]
+		level := int(depth)
+
+		// Position current system at next available Y in this column
+		y := nextYPosition[level]
+		positions[systemID] = struct{ x, y float64 }{x: depth, y: y}
+
+		if len(childList) == 0 {
+			// Leaf node - just increment for next sibling
+			nextYPosition[level] = y + positionYSeparation
+			return positionYSeparation
+		}
+
+		// First child starts at same Y as parent
+		nextYPosition[int(depth+positionXSeparation)] = y
+
+		// Process children and track total height needed
+		totalChildHeight := 0.0
+		for _, childID := range childList {
+			childHeight := calculatePosition(childID, depth+positionXSeparation)
+			totalChildHeight += childHeight
+		}
+
+		// Update parent's column position to account for children's space
+		nextYPosition[level] = y + totalChildHeight
+
+		return totalChildHeight
+	}
+
+	// Start calculation from home system at X=0
+	calculatePosition(homeSystemID, 0)
+
+	// Apply calculated positions to systems
+	for systemID, pos := range positions {
+		if sys, exists := systemMap[systemID]; exists {
+			sys.PositionX = pos.x
+			sys.PositionY = pos.y
+		}
+	}
+
+	return result
 }

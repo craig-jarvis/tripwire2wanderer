@@ -20,6 +20,8 @@ type Config struct {
 	TripwireUser         string
 	TripwirePassword     string
 	TripwireMaskID       string
+	PositionXSeparation  int
+	PositionYSeparation  int
 }
 
 // Load reads configuration from .env file and environment variables.
@@ -49,6 +51,8 @@ func Load() (*Config, error) {
 		TripwireUser:         strings.TrimSpace(getEnv("TW_USER", "")),
 		TripwirePassword:     strings.TrimSpace(getEnv("TW_PASSWORD", "")),
 		TripwireMaskID:       strings.TrimSpace(getEnv("TW_MASK_ID", "")),
+		PositionXSeparation:  195,
+		PositionYSeparation:  60, // 75 for a bit more space
 	}
 
 	// Validate required fields

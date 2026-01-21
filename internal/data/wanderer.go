@@ -295,24 +295,31 @@ func CalculateSystemPositions(envelope WandererConnectionsAndSystemsEnvelope, ho
 
 		// Process children and track total height needed
 		totalChildHeight := 0.0
-		firstChildY := y
-		var lastChildY float64
-		for _, childID := range childList {
+		var firstChildY, lastChildY float64
+		for i, childID := range childList {
 			childHeight := calculatePosition(childID, depth+positionXSeparation)
 			totalChildHeight += childHeight
+			if i == 0 {
+				firstChildY = positions[childID].y
+			}
 			lastChildY = positions[childID].y
 		}
 
-		// If only one child, parent stays at same Y as child
-		// Otherwise, center parent between first and last child, snapped to grid
-		if len(childList) == 1 {
-			positions[systemID] = struct{ x, y float64 }{x: depth, y: firstChildY}
-		} else {
-			centerY := (firstChildY + lastChildY) / 2.0
-			// Round to nearest grid position
-			centerY = float64(int(centerY/gridSize+0.5)) * gridSize
-			positions[systemID] = struct{ x, y float64 }{x: depth, y: centerY}
+		// Adjust parent position based on children
+		// Exception: don't move the home system itself
+		if systemID != homeSystemID {
+			if len(childList) == 1 {
+				// Single child: parent aligns with child's final position
+				positions[systemID] = struct{ x, y float64 }{x: depth, y: firstChildY}
+			} else {
+				// Multiple children: center parent between first and last child, snapped to grid
+				centerY := (firstChildY + lastChildY) / 2.0
+				// Round to nearest grid position
+				centerY = float64(int(centerY/gridSize+0.5)) * gridSize
+				positions[systemID] = struct{ x, y float64 }{x: depth, y: centerY}
+			}
 		}
+		// If this is the home system, keep it at its original position
 
 		// Update parent's column position to account for children's space
 		nextYPosition[level] = y + totalChildHeight

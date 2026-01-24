@@ -6,6 +6,10 @@ import (
 	"time"
 )
 
+const (
+	gridSize = 15.0 // Grid increment size for position snapping
+)
+
 // WandererConnection represents a single wormhole/connection in Wanderer
 type WandererConnection struct {
 	CustomInfo        string `json:"custom_info,omitzero"`
@@ -225,31 +229,8 @@ func DedupWandererEnvelope(envelope WandererConnectionsAndSystemsEnvelope) Wande
 	return deduped
 }
 
-// CalculateSystemPositions calculates position X and Y for all systems in a tree layout
-// starting from the home system. Parents are positioned to the left (lower Y) and centered
-// between their children horizontally.
-func CalculateSystemPositions(envelope WandererConnectionsAndSystemsEnvelope, homeSystemID int, positionXSeparation, positionYSeparation float64) WandererConnectionsAndSystemsEnvelope {
-	result := envelope
-
-	// Build adjacency map for the tree
-	adjacency := make(map[int][]int)
-	for _, conn := range envelope.Data.Connections {
-		adjacency[conn.SolarSystemSource] = append(adjacency[conn.SolarSystemSource], conn.SolarSystemTarget)
-		adjacency[conn.SolarSystemTarget] = append(adjacency[conn.SolarSystemTarget], conn.SolarSystemSource)
-	}
-
-	// Build system index map
-	systemMap := make(map[int]*WandererSystem)
-	for i := range result.Data.Systems {
-		systemMap[result.Data.Systems[i].SolarSystemID] = &result.Data.Systems[i]
-	}
-
-	// If home system doesn't exist, return unchanged
-	if _, exists := systemMap[homeSystemID]; !exists {
-		return result
-	}
-
-	// Build tree structure using BFS from home system
+// buildTreeStructure creates a tree structure from connections using BFS from the home system
+func buildTreeStructure(adjacency map[int][]int, homeSystemID int) (map[int]int, map[int][]int) {
 	visited := make(map[int]bool)
 	parent := make(map[int]int)
 	children := make(map[int][]int)
@@ -270,10 +251,17 @@ func CalculateSystemPositions(envelope WandererConnectionsAndSystemsEnvelope, ho
 		}
 	}
 
-	// Calculate positions accounting for child tree sizes
+	return parent, children
+}
+
+// calculateTreePositions recursively calculates positions for systems in the tree
+func calculateTreePositions(
+	homeSystemID int,
+	children map[int][]int,
+	positionXSeparation, positionYSeparation float64,
+) map[int]struct{ x, y float64 } {
 	positions := make(map[int]struct{ x, y float64 })
-	nextYPosition := make(map[int]float64) // Track next available Y position at each depth level
-	gridSize := 15.0                       // Grid increment size
+	nextYPosition := make(map[int]float64)
 
 	var calculatePosition func(systemID int, depth float64) float64
 	calculatePosition = func(systemID int, depth float64) float64 {
@@ -319,7 +307,6 @@ func CalculateSystemPositions(envelope WandererConnectionsAndSystemsEnvelope, ho
 				positions[systemID] = struct{ x, y float64 }{x: depth, y: centerY}
 			}
 		}
-		// If this is the home system, keep it at its original position
 
 		// Update parent's column position to account for children's space
 		nextYPosition[level] = y + totalChildHeight
@@ -327,11 +314,16 @@ func CalculateSystemPositions(envelope WandererConnectionsAndSystemsEnvelope, ho
 		return totalChildHeight
 	}
 
-	// Start calculation from home system at X=0
 	calculatePosition(homeSystemID, 0)
+	return positions
+}
 
-	// Special case: if home system has only one child, shift all descendants
-	// so the first-level child aligns with home's Y position
+// adjustHomeSystemSingleChild adjusts positions when home system has only one child
+func adjustHomeSystemSingleChild(
+	positions map[int]struct{ x, y float64 },
+	children map[int][]int,
+	homeSystemID int,
+) {
 	if len(children[homeSystemID]) == 1 {
 		homeY := positions[homeSystemID].y
 		firstChildID := children[homeSystemID][0]
@@ -345,6 +337,40 @@ func CalculateSystemPositions(envelope WandererConnectionsAndSystemsEnvelope, ho
 			}
 		}
 	}
+}
+
+// CalculateSystemPositions calculates position X and Y for all systems in a tree layout
+// starting from the home system. Parents are positioned to the left (lower Y) and centered
+// between their children horizontally.
+func CalculateSystemPositions(envelope WandererConnectionsAndSystemsEnvelope, homeSystemID int, positionXSeparation, positionYSeparation float64) WandererConnectionsAndSystemsEnvelope {
+	result := envelope
+
+	// Build adjacency map for the tree
+	adjacency := make(map[int][]int)
+	for _, conn := range envelope.Data.Connections {
+		adjacency[conn.SolarSystemSource] = append(adjacency[conn.SolarSystemSource], conn.SolarSystemTarget)
+		adjacency[conn.SolarSystemTarget] = append(adjacency[conn.SolarSystemTarget], conn.SolarSystemSource)
+	}
+
+	// Build system index map
+	systemMap := make(map[int]*WandererSystem)
+	for i := range result.Data.Systems {
+		systemMap[result.Data.Systems[i].SolarSystemID] = &result.Data.Systems[i]
+	}
+
+	// If home system doesn't exist, return unchanged
+	if _, exists := systemMap[homeSystemID]; !exists {
+		return result
+	}
+
+	// Build tree structure using BFS from home system
+	_, children := buildTreeStructure(adjacency, homeSystemID)
+
+	// Calculate positions for all systems
+	positions := calculateTreePositions(homeSystemID, children, positionXSeparation, positionYSeparation)
+
+	// Adjust positions if home system has only one child
+	adjustHomeSystemSingleChild(positions, children, homeSystemID)
 
 	// Apply calculated positions to systems
 	for systemID, pos := range positions {

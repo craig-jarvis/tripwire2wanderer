@@ -21,10 +21,11 @@ func GetTripwireSignaturesAndWormholesBySystemID(systemID string, signatures []d
 		}
 	}
 
-	// Get all wormholes where the initialId is the system
+	// Get all wormholes where the InitialID or SecondaryID matches signatures in this system
+	// This allows bidirectional traversal of wormhole connections
 	for _, sig := range filteredSignatures {
 		for _, wh := range wormholes {
-			if sig.ID == wh.InitialID {
+			if sig.ID == wh.InitialID || sig.ID == wh.SecondaryID {
 				filteredWormholes = append(filteredWormholes, wh)
 			}
 		}
@@ -82,8 +83,29 @@ func buildMapRecursive(systemID string, signatures []data.TripwireSignature, wor
 		}
 		*connections = append(*connections, connection)
 
-		// Find target system and recurse
-		targetSig, err := data.FindSignatureByID(wormhole.SecondaryID, &signatures)
+		// Find the other end of the wormhole
+		// If we're at the initial side, traverse to secondary
+		// If we're at the secondary side, traverse to initial
+		var otherSigID string
+		var foundMatch bool
+
+		for _, sig := range filteredSigs {
+			if sig.ID == wormhole.InitialID {
+				otherSigID = wormhole.SecondaryID
+				foundMatch = true
+				break
+			} else if sig.ID == wormhole.SecondaryID {
+				otherSigID = wormhole.InitialID
+				foundMatch = true
+				break
+			}
+		}
+
+		if !foundMatch {
+			continue
+		}
+
+		targetSig, err := data.FindSignatureByID(otherSigID, &signatures)
 		if err != nil {
 			continue
 		}

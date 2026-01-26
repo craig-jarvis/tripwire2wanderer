@@ -216,6 +216,24 @@ public static class DataHelpers
 		if (!currentConnections.SetEquals(newConnections))
 			return true;
 
+		// Check if system positions have changed
+		var currentPositions = current.Data.Systems.ToDictionary(s => s.SolarSystemId, s => (s.PositionX, s.PositionY));
+		var newPositions = newData.Data.Systems.ToDictionary(s => s.SolarSystemId, s => (s.PositionX, s.PositionY));
+
+		foreach (var systemId in currentSystemIds)
+		{
+			if (currentPositions.TryGetValue(systemId, out var currentPos) &&
+			    newPositions.TryGetValue(systemId, out var newPos))
+			{
+				// Check if positions differ (with small tolerance for floating point comparison)
+				if (Math.Abs(currentPos.PositionX - newPos.PositionX) > 0.01 ||
+				    Math.Abs(currentPos.PositionY - newPos.PositionY) > 0.01)
+				{
+					return true;
+				}
+			}
+		}
+
 		// No changes detected
 		return false;
 	}

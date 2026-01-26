@@ -1,0 +1,26 @@
+﻿version: '3.8'
+
+services:
+  tripwire2wanderer:
+    build: .
+    container_name: tripwire2wanderer
+    restart: unless-stopped
+    environment:
+      # Wanderer configuration
+      - WANDERER_URL=${WANDERER_URL}
+      - WANDERER_API_KEY=${WANDERER_API_KEY}
+      - WANDERER_MAP_SLUG=${WANDERER_MAP_SLUG}
+      - WANDERER_CHAR_ID=${WANDERER_CHAR_ID}
+      - WANDERER_HOME_SYSTEM_ID=${WANDERER_HOME_SYSTEM_ID}
+      
+      # Tripwire configuration
+      - TW_URL=${TW_URL}
+      - TW_USER=${TW_USER}
+      - TW_PASSWORD=${TW_PASSWORD}
+      - TW_MASK_ID=${TW_MASK_ID}
+      
+      # Sync interval (optional, defaults to 60 seconds)
+      - POLL_INTERVAL_SECONDS=${POLL_INTERVAL_SECONDS:-60}
+    
+    # Uncomment to run in debug mode
+    # command: ["dotnet", "Tripwire2Wanderer.dll", "--debug"]

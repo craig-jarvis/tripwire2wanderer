@@ -35,16 +35,16 @@ public class TripwireSignature
 	public string Id { get; set; } = string.Empty;
 
 	[JsonPropertyName("signatureID")]
-	public string SignatureId { get; set; } = string.Empty;
+	public string? SignatureId { get; set; } = string.Empty;
 
 	[JsonPropertyName("systemID")]
-	public string SystemId { get; set; } = string.Empty;
+	public string? SystemId { get; set; } = string.Empty;
 
 	[JsonPropertyName("type")]
-	public string Type { get; set; } = string.Empty;
+	public string? Type { get; set; } = string.Empty;
 
 	[JsonPropertyName("name")]
-	public string Name { get; set; } = string.Empty;
+	public string? Name { get; set; } = string.Empty;
 
 	[JsonPropertyName("bookmark")]
 	public string? Bookmark { get; set; }

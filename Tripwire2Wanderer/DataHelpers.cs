@@ -111,7 +111,7 @@ public static class DataHelpers
 					continue;
 
 				var targetSig = FindSignatureById(otherSigId, signatures);
-				if (targetSig != null && targetSig.SystemId != "0" && !visited.Contains(targetSig.SystemId))
+				if (targetSig != null && targetSig.SystemId != "0" && targetSig.SystemId != null && !visited.Contains(targetSig.SystemId))
 				{
 					BuildMapRecursive(targetSig.SystemId, signatures, wormholes, visited, systems, connections);
 				}
@@ -125,7 +125,7 @@ public static class DataHelpers
 
 	public static WandererSystem NewWandererSystemFromTripwireSignature(TripwireSignature twSignature)
 	{
-		if (twSignature.SystemId.Length < 5)
+		if (twSignature.SystemId?.Length < 5)
 		{
 			throw new ArgumentException($"Invalid system ID: {twSignature.SystemId}");
 		}
@@ -152,7 +152,7 @@ public static class DataHelpers
 		if (sourceSig == null)
 			throw new ArgumentException($"Source signature not found: {twWormhole.InitialId}");
 
-		if (sourceSig.SystemId.Length < 5)
+		if (sourceSig.SystemId?.Length < 5)
 			return connection;
 
 		if (!int.TryParse(sourceSig.SystemId, out int sourceSystemId))
@@ -164,7 +164,13 @@ public static class DataHelpers
 		if (targetSig == null)
 			throw new ArgumentException($"Target signature not found: {twWormhole.SecondaryId}");
 
-		if (targetSig.SystemId.Length < 5)
+		if (targetSig.SystemId is null)
+		{
+			connection.SolarSystemTarget = 0;
+			return connection;
+		}
+		
+		if (targetSig.SystemId?.Length < 5)
 			return connection;
 
 		if (!int.TryParse(targetSig.SystemId, out int targetSystemId))
@@ -178,6 +184,40 @@ public static class DataHelpers
 	public static TripwireSignature? FindSignatureById(string id, List<TripwireSignature> signatures)
 	{
 		return signatures.FirstOrDefault(s => s.Id == id);
+	}
+
+	public static bool HasChanges(
+			WandererConnectionsAndSystemsEnvelope current,
+			WandererConnectionsAndSystemsEnvelope newData)
+	{
+		// Check if system counts differ
+		if (current.Data.Systems.Count != newData.Data.Systems.Count)
+			return true;
+
+		// Check if connection counts differ
+		if (current.Data.Connections.Count != newData.Data.Connections.Count)
+			return true;
+
+		// Build sets of system IDs for comparison
+		var currentSystemIds = new HashSet<int>(current.Data.Systems.Select(s => s.SolarSystemId));
+		var newSystemIds = new HashSet<int>(newData.Data.Systems.Select(s => s.SolarSystemId));
+
+		// Check if any systems were added or removed
+		if (!currentSystemIds.SetEquals(newSystemIds))
+			return true;
+
+		// Build sets of connection tuples for comparison
+		var currentConnections = new HashSet<(int, int)>(
+			current.Data.Connections.Select(c => (c.SolarSystemSource, c.SolarSystemTarget)));
+		var newConnections = new HashSet<(int, int)>(
+			newData.Data.Connections.Select(c => (c.SolarSystemSource, c.SolarSystemTarget)));
+
+		// Check if any connections were added or removed
+		if (!currentConnections.SetEquals(newConnections))
+			return true;
+
+		// No changes detected
+		return false;
 	}
 
 	public static WandererSystemAndConnectionsDeleteRequest CompareWandererEnvelopes(
@@ -444,7 +484,7 @@ public static class DataHelpers
 		var sigId = string.Empty;
 		try
 		{
-			sigId = ConvertTripwireSigIdToEveId(twSignature.SignatureId);
+			if (twSignature.SignatureId != null) sigId = ConvertTripwireSigIdToEveId(twSignature.SignatureId);
 		}
 		catch
 		{

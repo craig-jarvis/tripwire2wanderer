@@ -136,7 +136,7 @@ public class WandererSignature
 
 	[JsonPropertyName("group")]
 	[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-	public string Group { get; set; } = string.Empty;
+	public string? Group { get; set; } = string.Empty;
 
 	[JsonPropertyName("id")]
 	[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
@@ -156,7 +156,7 @@ public class WandererSignature
 
 	[JsonPropertyName("name")]
 	[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-	public string Name { get; set; } = string.Empty;
+	public string? Name { get; set; } = string.Empty;
 
 	[JsonPropertyName("solar_system_id")]
 	[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]

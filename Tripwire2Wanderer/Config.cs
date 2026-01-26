@@ -13,6 +13,7 @@ public class Config
 	public string TripwireMaskId { get; set; } = string.Empty;
 	public int PositionXSeparation { get; set; } = 195;
 	public int PositionYSeparation { get; set; } = 60;
+	public int PollIntervalSeconds { get; set; } = 60;
 
 	public static Config Load()
 	{
@@ -31,7 +32,8 @@ public class Config
 			TripwirePassword = GetEnv("TW_PASSWORD", ""),
 			TripwireMaskId = GetEnv("TW_MASK_ID", ""),
 			PositionXSeparation = 195,
-			PositionYSeparation = 60
+			PositionYSeparation = 60,
+			PollIntervalSeconds = ParseIntEnv("POLL_INTERVAL_SECONDS", false, 60)
 		};
 
 		config.Validate();
@@ -44,7 +46,7 @@ public class Config
 		return string.IsNullOrWhiteSpace(value) ? defaultValue : value.Trim();
 	}
 
-	private static int ParseIntEnv(string key, bool required)
+	private static int ParseIntEnv(string key, bool required, int defaultValue = 0)
 	{
 		var val = GetEnv(key, "");
 		if (string.IsNullOrWhiteSpace(val))
@@ -53,7 +55,7 @@ public class Config
 			{
 				throw new InvalidOperationException($"{key} is required");
 			}
-			return 0;
+			return defaultValue;
 		}
 
 		if (!int.TryParse(val, out int intVal))

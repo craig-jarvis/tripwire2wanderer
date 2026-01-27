@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Extensions.Http;
 using Tripwire2Wanderer;
@@ -18,8 +19,8 @@ builder.Services.AddSingleton(config);
 
 builder.Services.AddLogging(config =>
 {
-    config.SetMinimumLevel(LogLevel.Warning);
-    config.AddFilter("System.Net.Http.HttpClient", LogLevel.Warning);
+	config.SetMinimumLevel(LogLevel.Warning);
+	config.AddFilter("System.Net.Http.HttpClient", LogLevel.Warning);
 });
 
 // Configure HttpClient for WandererClient with Polly retry policy

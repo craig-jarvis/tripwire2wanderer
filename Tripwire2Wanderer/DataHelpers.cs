@@ -496,63 +496,8 @@ public static class DataHelpers
 	}
 
 	public static WandererSignatureRequest NewWandererSignatureRequestFromTripwireSignature(
-			TripwireSignature twSignature, List<TripwireWormhole> wormholes, string characterEveId)
+			TripwireSignature twSignature, List<TripwireWormhole> wormholes, List<TripwireSignature> allSignatures, string characterEveId)
 	{
-		var request = new WandererSignatureRequest
-		{
-			CharacterId = characterEveId,
-			SignatureId = ParseEveId(twSignature.SignatureId),
-			SystemId = int.TryParse(twSignature.SystemId, out int sysId) ? sysId : 0,
-			Type = twSignature.Type?.ToLowerInvariant()
-		};
-
-		// If this is a wormhole signature, find the linked system
-		if (twSignature.Type?.ToLowerInvariant() == "wormhole")
-		{
-			// Find the wormhole connection where this signature is either initial or secondary
-			var wormhole = wormholes.FirstOrDefault(wh =>
-					wh.InitialId == twSignature.Id || wh.SecondaryId == twSignature.Id);
-
-			if (wormhole != null)
-			{
-				// Find the signature on the other side
-				var otherSigId = wormhole.InitialId == twSignature.Id
-						? wormhole.SecondaryId
-						: wormhole.InitialId;
-
-				var otherSignature = FindSignatureById(otherSigId, new List<TripwireSignature>());
-
-				// If we have the other signature and it has a valid system ID, use it
-				if (otherSignature != null && int.TryParse(otherSignature.SystemId, out int linkedSysId))
-				{
-					request.LinkedSystemId = linkedSysId;
-				}
-			}
-		}
-
-		return request;
-	}
-
-	private static string? ParseEveId(string? eveId)
-	{
-		if (string.IsNullOrEmpty(eveId) || eveId == "???")
-		{
-			return null;
-		}
-
-		// Check if eveId matches pattern [A-Z]{3}-\d{3}
-		if (AppRegex.EveIdRegex().IsMatch(eveId))
-		{
-			return eveId;
-		}
-
-		if (AppRegex.TripWireSignatureIdRegex().IsMatch(eveId))
-		{
-			// Convert tripwire pattern abc123 to EVE pattern ABC-123
-			var upper = eveId.ToUpper();
-			return $"{upper[..3]}-{upper.Substring(3, 3)}";
-		}
-
-		return null;
+		return WandererSignatureRequest.FromTripwireSignature(twSignature, wormholes, allSignatures, characterEveId);
 	}
 }

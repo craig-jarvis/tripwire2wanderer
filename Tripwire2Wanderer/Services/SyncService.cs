@@ -28,51 +28,47 @@ public class SyncService : BackgroundService
 	}
 
 	protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-	{
-		Console.WriteLine($"Poll interval: {_config.PollIntervalSeconds} seconds");
-		Console.WriteLine("Starting sync loop...\n");
+{
+    Console.WriteLine($"Poll interval: {_config.PollIntervalSeconds} seconds");
+    Console.WriteLine("Starting sync loop...\n");
 
-		while (!stoppingToken.IsCancellationRequested)
-		{
-			var startTime = DateTime.UtcNow;
+    while (!stoppingToken.IsCancellationRequested)
+    {
+        var startTime = DateTime.UtcNow;
 
-			try
-			{
-				await RunSyncAsync(stoppingToken);
-			}
-			catch (OperationCanceledException)
-			{
-				Console.WriteLine("Sync cancelled due to shutdown");
-				break;
-			}
-			catch (Exception ex)
-			{
-				Console.WriteLine($"Error during sync: {ex.Message}");
-				Console.WriteLine($"Stack trace: {ex.StackTrace}");
-			}
+        try
+        {
+            await RunSyncAsync(stoppingToken);
+        }
+        catch (OperationCanceledException)
+        {
+            Console.WriteLine("Sync cancelled due to shutdown");
+            break;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error during sync: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+        }
 
-			var elapsed = DateTime.UtcNow - startTime;
-			Console.WriteLine($"\nSync completed in {elapsed.TotalSeconds:F2} seconds");
+        var elapsed = DateTime.UtcNow - startTime;
+        Console.WriteLine($"\nSync completed in {elapsed.TotalSeconds:F2} seconds");
 
-			// Wait for the configured interval before next sync
-			var waitTime = TimeSpan.FromSeconds(_config.PollIntervalSeconds) - elapsed;
-			if (waitTime > TimeSpan.Zero && !stoppingToken.IsCancellationRequested)
-			{
-				Console.WriteLine($"Waiting {waitTime.TotalSeconds:F0} seconds until next sync...\n");
-				try
-				{
-					await Task.Delay(waitTime, stoppingToken);
-				}
-				catch (OperationCanceledException)
-				{
-					Console.WriteLine("Wait cancelled due to shutdown");
-					break;
-				}
-			}
-		}
+        // Always wait for the full configured interval before next sync
+        Console.WriteLine($"Waiting {_config.PollIntervalSeconds} seconds until next sync...\n");
+        try
+        {
+            await Task.Delay(TimeSpan.FromSeconds(_config.PollIntervalSeconds), stoppingToken);
+        }
+        catch (OperationCanceledException)
+        {
+            Console.WriteLine("Wait cancelled due to shutdown");
+            break;
+        }
+    }
 
-		Console.WriteLine("Shutdown complete");
-	}
+    Console.WriteLine("Shutdown complete");
+}
 
 	private async Task RunSyncAsync(CancellationToken cancellationToken)
 	{

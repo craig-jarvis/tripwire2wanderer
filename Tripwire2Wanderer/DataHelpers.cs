@@ -169,7 +169,7 @@ public static class DataHelpers
 			connection.SolarSystemTarget = 0;
 			return connection;
 		}
-		
+
 		if (targetSig.SystemId?.Length < 5)
 			return connection;
 
@@ -223,11 +223,11 @@ public static class DataHelpers
 		foreach (var systemId in currentSystemIds)
 		{
 			if (currentPositions.TryGetValue(systemId, out var currentPos) &&
-			    newPositions.TryGetValue(systemId, out var newPos))
+					newPositions.TryGetValue(systemId, out var newPos))
 			{
 				// Check if positions differ (with small tolerance for floating point comparison)
 				if (Math.Abs(currentPos.PositionX - newPos.PositionX) > 0.01 ||
-				    Math.Abs(currentPos.PositionY - newPos.PositionY) > 0.01)
+						Math.Abs(currentPos.PositionY - newPos.PositionY) > 0.01)
 				{
 					return true;
 				}
@@ -496,20 +496,63 @@ public static class DataHelpers
 	}
 
 	public static WandererSignatureRequest NewWandererSignatureRequestFromTripwireSignature(
-		TripwireSignature twSignature,
-		string characterEveId)
+			TripwireSignature twSignature, List<TripwireWormhole> wormholes, string characterEveId)
 	{
-		var request = new WandererSignatureRequest();
-		
-		request.CreateRequest(
-			eveId: twSignature.SignatureId,
-			name: twSignature.Name,
-			eveCharId: characterEveId,
-			twType: twSignature.Type?.ToLower() ?? "unknown",
-			solarSystemId: twSignature.SystemId ?? "0",
-			linkedSystemId: null
-		);
-		
+		var request = new WandererSignatureRequest
+		{
+			CharacterId = characterEveId,
+			SignatureId = ParseEveId(twSignature.SignatureId),
+			SystemId = int.TryParse(twSignature.SystemId, out int sysId) ? sysId : 0,
+			Type = twSignature.Type?.ToLowerInvariant()
+		};
+
+		// If this is a wormhole signature, find the linked system
+		if (twSignature.Type?.ToLowerInvariant() == "wormhole")
+		{
+			// Find the wormhole connection where this signature is either initial or secondary
+			var wormhole = wormholes.FirstOrDefault(wh =>
+					wh.InitialId == twSignature.Id || wh.SecondaryId == twSignature.Id);
+
+			if (wormhole != null)
+			{
+				// Find the signature on the other side
+				var otherSigId = wormhole.InitialId == twSignature.Id
+						? wormhole.SecondaryId
+						: wormhole.InitialId;
+
+				var otherSignature = FindSignatureById(otherSigId, new List<TripwireSignature>());
+
+				// If we have the other signature and it has a valid system ID, use it
+				if (otherSignature != null && int.TryParse(otherSignature.SystemId, out int linkedSysId))
+				{
+					request.LinkedSystemId = linkedSysId;
+				}
+			}
+		}
+
 		return request;
+	}
+
+	private static string? ParseEveId(string? eveId)
+	{
+		if (string.IsNullOrEmpty(eveId) || eveId == "???")
+		{
+			return null;
+		}
+
+		// Check if eveId matches pattern [A-Z]{3}-\d{3}
+		if (AppRegex.EveIdRegex().IsMatch(eveId))
+		{
+			return eveId;
+		}
+
+		if (AppRegex.TripWireSignatureIdRegex().IsMatch(eveId))
+		{
+			// Convert tripwire pattern abc123 to EVE pattern ABC-123
+			var upper = eveId.ToUpper();
+			return $"{upper[..3]}-{upper.Substring(3, 3)}";
+		}
+
+		return null;
 	}
 }

@@ -1,14 +1,33 @@
 # tripwire2wanderer
 
+[![Docker Build and Publish](https://github.com/craig-jarvis/tripwire2wanderer/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/craig-jarvis/tripwire2wanderer/actions/workflows/docker-publish.yml)
+
 Tool for performing a one-way sync from a Tripwire mask to a Wanderer map. Runs continuously in a loop, syncing at configurable intervals.
 
 ## Features
 
 - Continuous syncing from Tripwire to Wanderer
-- Configurable poll interval
+- Configurable poll interval (minimum 15 seconds)
 - Docker support for easy deployment
+- **Automatic Docker image builds via GitHub Actions**
+- Pre-built multi-architecture images (amd64, arm64)
 - Debug mode to test without making API calls to Wanderer
-- Graceful shutdown handling
+- Graceful shutdown handling (SIGTERM/SIGINT)
+- Automatic retry with exponential backoff for transient failures
+- Health checks for API monitoring
+
+## CI/CD & Pre-built Images
+
+This project uses GitHub Actions to automatically build and publish Docker images to GitHub Container Registry.
+
+**Pre-built images available at:** `ghcr.io/craig-jarvis/tripwire2wanderer`
+
+- ✅ Built on every commit to main
+- ✅ Tagged releases for versioning
+- ✅ Multi-architecture support (amd64, arm64)
+- ✅ Automatic security attestations
+
+[📖 GitHub Actions Setup Guide](GITHUB_ACTIONS_SETUP.md)
 
 ## Configuration
 
@@ -30,9 +49,11 @@ The application is configured via environment variables. You can use a `.env` fi
 
 ### Optional Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `POLL_INTERVAL_SECONDS` | Seconds between sync operations | `60` |
+| Variable | Description | Default | Validation |
+|----------|-------------|---------|------------|
+| `POLL_INTERVAL_SECONDS` | Seconds between sync operations | `60` | Minimum: 15 seconds |
+
+**Note:** The minimum poll interval is 15 seconds to prevent API spamming. The application will fail to start if a lower value is configured.
 
 ## Running Locally
 
@@ -54,7 +75,40 @@ The application is configured via environment variables. You can use a `.env` fi
 
 ## Running with Docker
 
-### Using Docker Compose (Recommended)
+### Using Pre-built Images from GitHub Container Registry (Recommended)
+
+Pre-built Docker images are automatically published to GitHub Container Registry on every release.
+
+1. Pull the latest image:
+   ```bash
+   docker pull ghcr.io/YOUR_USERNAME/tripwire2wanderer:latest
+   ```
+
+2. Run the container with your configuration:
+   ```bash
+   docker run -d --name tripwire2wanderer \
+     --env-file .env \
+     ghcr.io/YOUR_USERNAME/tripwire2wanderer:latest
+   ```
+
+3. Or use Docker Compose with the pre-built image:
+   ```yaml
+   version: '3.8'
+   services:
+     tripwire2wanderer:
+       image: ghcr.io/YOUR_USERNAME/tripwire2wanderer:latest
+       container_name: tripwire2wanderer
+       env_file:
+         - .env
+       restart: unless-stopped
+   ```
+
+**Available image tags:**
+- `latest` - Latest build from the main branch
+- `v1.0.0` - Specific version tags
+- `main-sha-abc1234` - Specific commit builds
+
+### Using Docker Compose (Local Build)
 
 1. Copy `.env.example` to `.env` and configure your settings
 2. Start the container:
@@ -72,7 +126,7 @@ The application is configured via environment variables. You can use a `.env` fi
    docker-compose down
    ```
 
-### Using Docker directly
+### Building and Running Locally
 
 1. Build the image:
    ```bash

@@ -16,6 +16,12 @@ var builder = Host.CreateApplicationBuilder(args);
 // Register configuration as singleton
 builder.Services.AddSingleton(config);
 
+builder.Services.AddLogging(config =>
+{
+    config.SetMinimumLevel(LogLevel.Warning);
+    config.AddFilter("System.Net.Http.HttpClient", LogLevel.Warning);
+});
+
 // Configure HttpClient for WandererClient with Polly retry policy
 builder.Services.AddHttpClient<WandererClient>()
 	.AddPolicyHandler(GetRetryPolicy());

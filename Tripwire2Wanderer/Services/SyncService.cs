@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Hosting;
 using System.Text.Json;
 using Tripwire2Wanderer.Clients;
 
@@ -16,11 +16,11 @@ public class SyncService : BackgroundService
 		_config = config;
 		_tripwireClient = tripwireClient;
 		_wandererClient = wandererClient;
-		
+
 		// Check for debug mode from environment or command line
-		_debug = Environment.GetCommandLineArgs().Contains("--debug") || 
-		         Environment.GetEnvironmentVariable("DEBUG") == "true";
-		
+		_debug = Environment.GetCommandLineArgs().Contains("--debug") ||
+						 Environment.GetEnvironmentVariable("DEBUG") == "true";
+
 		if (_debug)
 		{
 			Console.WriteLine("Running in DEBUG mode - Wanderer API calls will be skipped");
@@ -28,47 +28,47 @@ public class SyncService : BackgroundService
 	}
 
 	protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-{
-    Console.WriteLine($"Poll interval: {_config.PollIntervalSeconds} seconds");
-    Console.WriteLine("Starting sync loop...\n");
+	{
+		Console.WriteLine($"Poll interval: {_config.PollIntervalSeconds} seconds");
+		Console.WriteLine("Starting sync loop...\n");
 
-    while (!stoppingToken.IsCancellationRequested)
-    {
-        var startTime = DateTime.UtcNow;
+		while (!stoppingToken.IsCancellationRequested)
+		{
+			var startTime = DateTime.UtcNow;
 
-        try
-        {
-            await RunSyncAsync(stoppingToken);
-        }
-        catch (OperationCanceledException)
-        {
-            Console.WriteLine("Sync cancelled due to shutdown");
-            break;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error during sync: {ex.Message}");
-            Console.WriteLine($"Stack trace: {ex.StackTrace}");
-        }
+			try
+			{
+				await RunSyncAsync(stoppingToken);
+			}
+			catch (OperationCanceledException)
+			{
+				Console.WriteLine("Sync cancelled due to shutdown");
+				break;
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine($"Error during sync: {ex.Message}");
+				Console.WriteLine($"Stack trace: {ex.StackTrace}");
+			}
 
-        var elapsed = DateTime.UtcNow - startTime;
-        Console.WriteLine($"\nSync completed in {elapsed.TotalSeconds:F2} seconds");
+			var elapsed = DateTime.UtcNow - startTime;
+			Console.WriteLine($"\nSync completed in {elapsed.TotalSeconds:F2} seconds");
 
-        // Always wait for the full configured interval before next sync
-        Console.WriteLine($"Waiting {_config.PollIntervalSeconds} seconds until next sync...\n");
-        try
-        {
-            await Task.Delay(TimeSpan.FromSeconds(_config.PollIntervalSeconds), stoppingToken);
-        }
-        catch (OperationCanceledException)
-        {
-            Console.WriteLine("Wait cancelled due to shutdown");
-            break;
-        }
-    }
+			// Always wait for the full configured interval before next sync
+			Console.WriteLine($"Waiting {_config.PollIntervalSeconds} seconds until next sync...\n");
+			try
+			{
+				await Task.Delay(TimeSpan.FromSeconds(_config.PollIntervalSeconds), stoppingToken);
+			}
+			catch (OperationCanceledException)
+			{
+				Console.WriteLine("Wait cancelled due to shutdown");
+				break;
+			}
+		}
 
-    Console.WriteLine("Shutdown complete");
-}
+		Console.WriteLine("Shutdown complete");
+	}
 
 	private async Task RunSyncAsync(CancellationToken cancellationToken)
 	{

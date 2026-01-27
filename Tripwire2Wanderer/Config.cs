@@ -99,5 +99,8 @@ public class Config
 
 		if (string.IsNullOrWhiteSpace(TripwireMaskId))
 			throw new InvalidOperationException("TW_MASK_ID is required");
+
+		if (PollIntervalSeconds < 15)
+			throw new InvalidOperationException($"POLL_INTERVAL_SECONDS must be at least 15 seconds to prevent API spamming, got {PollIntervalSeconds}");
 	}
 }

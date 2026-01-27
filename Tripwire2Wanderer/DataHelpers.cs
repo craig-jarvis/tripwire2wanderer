@@ -495,28 +495,21 @@ public static class DataHelpers
 		return $"{letters}-{numbers}";
 	}
 
-	public static WandererSignature NewWandererSignatureFromTripwireSignature(TripwireSignature twSignature)
+	public static WandererSignatureRequest NewWandererSignatureRequestFromTripwireSignature(
+		TripwireSignature twSignature,
+		string characterEveId)
 	{
-		int.TryParse(twSignature.SystemId, out int solarSystemId);
-
-		var sigId = string.Empty;
-		try
-		{
-			if (twSignature.SignatureId != null) sigId = ConvertTripwireSigIdToEveId(twSignature.SignatureId);
-		}
-		catch
-		{
-			// Ignore conversion errors
-		}
-
-		return new WandererSignature
-		{
-			CharacterEveId = twSignature.CreatedById,
-			EveId = sigId,
-			Group = twSignature.Type,
-			Kind = "Cosmic Signature",
-			Name = twSignature.Name,
-			SolarSystemId = solarSystemId
-		};
+		var request = new WandererSignatureRequest();
+		
+		request.CreateRequest(
+			eveId: twSignature.SignatureId,
+			name: twSignature.Name,
+			eveCharId: characterEveId,
+			twType: twSignature.Type?.ToLower() ?? "unknown",
+			solarSystemId: twSignature.SystemId ?? "0",
+			linkedSystemId: null
+		);
+		
+		return request;
 	}
 }

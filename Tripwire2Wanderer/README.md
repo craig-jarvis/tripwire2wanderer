@@ -60,11 +60,11 @@ dotnet run -c Release
 - `Config.cs` - Configuration loader and validator
 - `DataHelpers.cs` - Helper methods for data transformation and map building
 - `Models/` - Data models for Tripwire and Wanderer APIs
-  - `TripwireModels.cs` - Tripwire data structures
-  - `WandererModels.cs` - Wanderer data structures
+    - `TripwireModels.cs` - Tripwire data structures
+    - `WandererModels.cs` - Wanderer data structures
 - `Clients/` - API clients
-  - `TripwireClient.cs` - Tripwire API client
-  - `WandererClient.cs` - Wanderer API client
+    - `TripwireClient.cs` - Tripwire API client
+    - `WandererClient.cs` - Wanderer API client
 
 ## Dependencies
 

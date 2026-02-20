@@ -38,7 +38,7 @@ public class WandererSignatureRequest
 
     public static string MapTripwireTypeToWandererGroup(string? tripwireType)
     {
-        return (tripwireType?.ToLowerInvariant()) switch
+        return tripwireType?.ToLowerInvariant() switch
         {
             "combat" => "Combat Site",
             "data" => "Data Site",
@@ -62,7 +62,7 @@ public class WandererSignatureRequest
         {
             CharacterEveId = characterEveId,
             EveId = ParseEveId(twSignature.SignatureId),
-            SolarSystemId = int.TryParse(twSignature.SystemId, out int sysId) ? sysId : 0,
+            SolarSystemId = int.TryParse(twSignature.SystemId, out var sysId) ? sysId : 0,
             Group = signatureGroup
         };
 
@@ -83,10 +83,8 @@ public class WandererSignatureRequest
                 var otherSignature = allSignatures.FirstOrDefault(s => s.Id == otherSigId);
 
                 // If we have the other signature and it has a valid system ID, use it
-                if (otherSignature != null && int.TryParse(otherSignature.SystemId, out int linkedSysId))
-                {
+                if (otherSignature != null && int.TryParse(otherSignature.SystemId, out var linkedSysId))
                     request.LinkedSystemId = linkedSysId;
-                }
             }
         }
 
@@ -95,16 +93,10 @@ public class WandererSignatureRequest
 
     private static string? ParseEveId(string? eveId)
     {
-        if (string.IsNullOrEmpty(eveId) || eveId == "???")
-        {
-            return null;
-        }
+        if (string.IsNullOrEmpty(eveId) || eveId == "???") return null;
 
         // Check if eveId matches pattern [A-Z]{3}-\d{3}
-        if (AppRegex.EveIdRegex().IsMatch(eveId))
-        {
-            return eveId;
-        }
+        if (AppRegex.EveIdRegex().IsMatch(eveId)) return eveId;
 
         if (AppRegex.TripWireSignatureIdRegex().IsMatch(eveId))
         {

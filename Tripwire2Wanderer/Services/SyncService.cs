@@ -138,11 +138,19 @@ public class SyncService : BackgroundService
 
                     // Compare and prepare delete request
                     var deleteRequest = DataHelpers.CompareWandererEnvelopes(wandererData, mapResult);
-
-                    // Delete no longer on map systems and connections
-                    Console.WriteLine(
-                        $"--- Deleting {deleteRequest.ConnectionIds.Count} connections and {deleteRequest.SystemIds.Count} systems from Wanderer ---");
-                    await _wandererClient.DeleteSystemsAndConnectionsAsync(deleteRequest, cancellationToken);
+                    
+                    if (deleteRequest.ConnectionIds.Count > 0 || deleteRequest.SystemIds.Count > 0)
+                    {
+                        // Delete no longer on map systems and connections
+                        Console.WriteLine(
+                            $"--- Deleting {deleteRequest.ConnectionIds.Count} connections and {deleteRequest.SystemIds.Count} systems from Wanderer ---");
+                        await _wandererClient.DeleteSystemsAndConnectionsAsync(deleteRequest, cancellationToken);
+                        await Task.Delay(1000, cancellationToken);
+                    }
+                    else
+                    {
+                        Console.WriteLine("--- No systems or connections to delete from Wanderer ---");
+                    }
 
                     // Post current systems and connections for Wanderer
                     var wandererResponse =

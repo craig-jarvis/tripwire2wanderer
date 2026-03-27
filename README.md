@@ -20,7 +20,7 @@ Tool for performing a one-way sync from a Tripwire mask to a Wanderer map. Runs 
 
 This project uses GitHub Actions to automatically build and publish Docker images to GitHub Container Registry.
 
-**Pre-built images available at:** `ghcr.io/craig-jarvis/tripwire2wanderer`
+**Pre-built images available at:** `https://hub.docker.com/r/cjarvis/tripwire2wanderer`
 
 - ✅ Built on every commit to main
 - ✅ Tagged releases for versioning
@@ -81,14 +81,14 @@ Pre-built Docker images are automatically published to GitHub Container Registry
 
 1. Pull the latest image:
    ```bash
-   docker pull ghcr.io/YOUR_USERNAME/tripwire2wanderer:latest
+   docker pull hub.docker.com/r/cjarvis/tripwire2wanderer:latest
    ```
 
 2. Run the container with your configuration:
    ```bash
    docker run -d --name tripwire2wanderer \
      --env-file .env \
-     ghcr.io/YOUR_USERNAME/tripwire2wanderer:latest
+     hub.docker.com/r/cjarvis/tripwire2wanderer:latest
    ```
 
 3. Or use Docker Compose with the pre-built image:
@@ -96,7 +96,7 @@ Pre-built Docker images are automatically published to GitHub Container Registry
    version: '3.8'
    services:
      tripwire2wanderer:
-       image: ghcr.io/YOUR_USERNAME/tripwire2wanderer:latest
+       image: hub.docker.com/r/cjarvis/tripwire2wanderer:latest
        container_name: tripwire2wanderer
        env_file:
          - .env

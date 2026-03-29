@@ -544,45 +544,15 @@ public static class DataHelpers
     private static HashSet<int> BuildProtectedSystemsSet(
         WandererConnectionsAndSystemsEnvelope current)
     {
-        // Build adjacency list from current connections
-        var adjacency = new Dictionary<int, List<int>>();
-        foreach (var conn in current.Data.Connections)
-        {
-            if (!adjacency.ContainsKey(conn.SolarSystemSource))
-                adjacency[conn.SolarSystemSource] = new List<int>();
-            if (!adjacency.ContainsKey(conn.SolarSystemTarget))
-                adjacency[conn.SolarSystemTarget] = new List<int>();
-
-            adjacency[conn.SolarSystemSource].Add(conn.SolarSystemTarget);
-            adjacency[conn.SolarSystemTarget].Add(conn.SolarSystemSource);
-        }
-
-        // Find all systems connected to locked systems
+        // Only the locked systems themselves are protected.
+        // Connections where either endpoint is locked are already guarded in the callers
+        // via !protectedSystems.Contains(source) && !protectedSystems.Contains(target).
+        // The previous BFS here propagated protection through the entire map (since home is
+        // locked and reachable from everywhere), which prevented any deletions.
         var protectedSystems = new HashSet<int>();
         foreach (var system in current.Data.Systems)
             if (system.Locked)
-            {
-                // BFS to find all connected systems
-                var queue = new Queue<int>();
-                var visited = new HashSet<int>();
-
-                queue.Enqueue(system.SolarSystemId);
-                visited.Add(system.SolarSystemId);
-
-                while (queue.Count > 0)
-                {
-                    var currentId = queue.Dequeue();
-                    protectedSystems.Add(currentId);
-
-                    if (adjacency.ContainsKey(currentId))
-                        foreach (var neighbor in adjacency[currentId])
-                            if (!visited.Contains(neighbor))
-                            {
-                                visited.Add(neighbor);
-                                queue.Enqueue(neighbor);
-                            }
-                }
-            }
+                protectedSystems.Add(system.SolarSystemId);
 
         return protectedSystems;
     }
